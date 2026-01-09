@@ -49,25 +49,6 @@ let package = Package(
                 .headerSearchPath("."),
                 .headerSearchPath("mldsa-native/mldsa"),
                 .headerSearchPath("mldsa-native/mldsa/src"),
-
-                // C compiler flags (matching CMake configuration)
-                .unsafeFlags(["-Wall"], .when(configuration: .debug)),
-                .unsafeFlags(["-Wall"], .when(configuration: .release)),
-                .unsafeFlags(["-Wextra"]),
-                .unsafeFlags(["-Werror"]),
-                .unsafeFlags(["-Wmissing-prototypes"]),
-                .unsafeFlags(["-Wshadow"]),
-                .unsafeFlags(["-Wpointer-arith"]),
-                .unsafeFlags(["-Wno-long-long"]),
-                .unsafeFlags(["-Wno-unknown-pragmas"]),
-                .unsafeFlags(["-Wredundant-decls"]),
-                .unsafeFlags(["-Wno-unused-command-line-argument"]),
-                .unsafeFlags(["-Wno-unused-function"]),
-                .unsafeFlags(["-fomit-frame-pointer"]),
-                .unsafeFlags(["-std=c99"]),
-                .unsafeFlags(["-pedantic"]),
-                .unsafeFlags(["-O3"], .when(configuration: .release)),
-                .unsafeFlags(["-fvisibility=default"], .when(platforms: [.macOS, .iOS])),
             ],
             linkerSettings: [
                 // Link Security framework on Apple platforms
