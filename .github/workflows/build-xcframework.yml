@@ -1,0 +1,49 @@
+name: Build XCFramework
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  build-xcframework:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Select Xcode version
+      run: sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
+
+    - name: Show Xcode version
+      run: xcodebuild -version
+
+    - name: Install CMake
+      run: brew install cmake
+
+    - name: Grant execute permission for build script
+      run: chmod +x build_apple.sh
+
+    - name: Build XCFramework
+      run: ./build_apple.sh
+
+    - name: Verify XCFramework
+      run: |
+        if [ -d "test/libs/MLDSA.xcframework" ]; then
+          echo "XCFramework created successfully"
+          ls -la test/libs/MLDSA.xcframework
+        else
+          echo "XCFramework not found"
+          exit 1
+        fi
+
+    - name: Upload XCFramework artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: mldsa-xcframework
+        path: test/libs/MLDSA.xcframework
