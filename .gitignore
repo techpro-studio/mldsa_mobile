@@ -1,0 +1,38 @@
+# iOS
+objc/build/
+.build/
+*.xcframework
+*.framework
+*.a
+*.o
+.DS_Store
+build/
+.swiftpm/
+
+# Android
+android/.gradle/
+android/.idea/
+android/build/
+android/app/build/
+android/local.properties
+*.iml
+*.apk
+*.ap_
+*.dex
+*.class
+
+# NDK
+android/app/src/main/cpp/.cxx/
+android/app/.cxx/
+*.so
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build artifacts
+*.log
+*.obj
