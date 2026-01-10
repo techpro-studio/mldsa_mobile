@@ -5,6 +5,12 @@ public class MLDSA {
         System.loadLibrary("mldsa-jni");
     }
 
+    /**
+     * Constants for ML-DSA
+     */
+    public static final int SEEDBYTES = 32;
+    public static final int MAX_CONTEXT_LENGTH = 255;
+
     public enum SecurityLevel {
         LEVEL_44(44),
         LEVEL_65(65),
@@ -106,11 +112,52 @@ public class MLDSA {
     }
 
     /**
+     * Generate a keypair deterministically using a seed (internal API)
+     *
+     * @param seed The seed for key generation (must be 32 bytes)
+     * @param level The security level (44, 65, or 87)
+     * @return A new KeyPair
+     * @throws MLDSAException if key generation fails or seed is invalid
+     */
+    public static KeyPair generateKeyPairWithSeed(byte[] seed, SecurityLevel level) throws MLDSAException {
+        if (seed == null || seed.length != 32) {
+            throw new MLDSAException("Seed must be exactly 32 bytes", -100);
+        }
+
+        int levelValue = level.getValue();
+        int pkSize = getPublicKeySize(levelValue);
+        int skSize = getSecretKeySize(levelValue);
+
+        byte[] publicKey = new byte[pkSize];
+        byte[] secretKey = new byte[skSize];
+
+        int result = nativeGenerateKeyPairWithSeed(levelValue, seed, publicKey, secretKey);
+        if (result != 0) {
+            throw new MLDSAException("Key generation with seed failed with code: " + result, result);
+        }
+
+        return new KeyPair(publicKey, secretKey, level);
+    }
+
+    /**
+     * Validate context string length
+     *
+     * @param context The context to validate
+     * @throws MLDSAException if context is too long
+     */
+    public static void validateContext(byte[] context) throws MLDSAException {
+        if (context != null && context.length > MAX_CONTEXT_LENGTH) {
+            throw new MLDSAException("Context length must be <= " + MAX_CONTEXT_LENGTH + " bytes, got " + context.length, -100);
+        }
+    }
+
+
+    /**
      * Sign a message with a secret key
      *
      * @param message The message to sign
      * @param secretKey The secret key
-     * @param context Optional context string (can be null)
+     * @param context Optional context string (can be null, max 255 bytes)
      * @param level The security level
      * @return The signature
      * @throws MLDSAException if signing fails
@@ -120,6 +167,8 @@ public class MLDSA {
         if (message == null || secretKey == null) {
             throw new MLDSAException("Message and secret key are required", -100);
         }
+
+        validateContext(context);
 
         int levelValue = level.getValue();
         int sigSize = getSignatureSize(levelValue);
@@ -147,14 +196,13 @@ public class MLDSA {
             throws MLDSAException {
         return sign(message, secretKey, null, level);
     }
-
     /**
      * Verify a signature
      *
      * @param signature The signature to verify
      * @param message The original message
      * @param publicKey The public key
-     * @param context Optional context string (can be null)
+     * @param context Optional context string (can be null, max 255 bytes)
      * @param level The security level
      * @return true if the signature is valid, false otherwise
      * @throws MLDSAException if verification encounters an error (other than invalid signature)
@@ -164,6 +212,8 @@ public class MLDSA {
         if (signature == null || message == null || publicKey == null) {
             throw new MLDSAException("Signature, message, and public key are required", -100);
         }
+
+        validateContext(context);
 
         int levelValue = level.getValue();
         int result = nativeVerify(levelValue, signature, message, publicKey, context);
@@ -188,6 +238,7 @@ public class MLDSA {
 
     // Native methods
     private static native int nativeGenerateKeyPair(int level, byte[] publicKey, byte[] secretKey);
+    private static native int nativeGenerateKeyPairWithSeed(int level, byte[] seed, byte[] publicKey, byte[] secretKey);
     private static native int nativeSign(int level, byte[] message, byte[] secretKey, byte[] context, byte[] signature);
     private static native int nativeVerify(int level, byte[] signature, byte[] message, byte[] publicKey, byte[] context);
 }

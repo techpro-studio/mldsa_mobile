@@ -97,6 +97,59 @@ Java_com_mldsa_MLDSA_nativeGenerateKeyPair(JNIEnv *env, jclass clazz,
 }
 
 JNIEXPORT jint JNICALL
+Java_com_mldsa_MLDSA_nativeGenerateKeyPairWithSeed(JNIEnv *env, jclass clazz,
+                                                     jint level,
+                                                     jbyteArray seed,
+                                                     jbyteArray publicKey,
+                                                     jbyteArray secretKey) {
+    // Validate seed length (must be 32 bytes)
+    if (env->GetArrayLength(seed) != 32) {
+        return -100; // Invalid parameter
+    }
+
+    jbyte *seedBytes = env->GetByteArrayElements(seed, nullptr);
+    jbyte *pk = env->GetByteArrayElements(publicKey, nullptr);
+    jbyte *sk = env->GetByteArrayElements(secretKey, nullptr);
+
+    if (seedBytes == nullptr || pk == nullptr || sk == nullptr) {
+        if (seedBytes != nullptr) env->ReleaseByteArrayElements(seed, seedBytes, JNI_ABORT);
+        if (pk != nullptr) env->ReleaseByteArrayElements(publicKey, pk, JNI_ABORT);
+        if (sk != nullptr) env->ReleaseByteArrayElements(secretKey, sk, JNI_ABORT);
+        return -2; // Out of memory
+    }
+
+    int ret;
+    switch (level) {
+        case 44:
+            ret = MLDSA44_keypair_internal((uint8_t *)pk, (uint8_t *)sk, (const uint8_t *)seedBytes);
+            break;
+        case 65:
+            ret = MLDSA65_keypair_internal((uint8_t *)pk, (uint8_t *)sk, (const uint8_t *)seedBytes);
+            break;
+        case 87:
+            ret = MLDSA87_keypair_internal((uint8_t *)pk, (uint8_t *)sk, (const uint8_t *)seedBytes);
+            break;
+        default:
+            ret = -100; // Invalid parameter
+    }
+
+    // Clear seed from memory
+    env->ReleaseByteArrayElements(seed, seedBytes, JNI_ABORT);
+
+    if (ret == 0) {
+        env->ReleaseByteArrayElements(publicKey, pk, 0);
+        env->ReleaseByteArrayElements(secretKey, sk, 0);
+    } else {
+        env->ReleaseByteArrayElements(publicKey, pk, JNI_ABORT);
+        // Clear sensitive data before releasing
+        memset(sk, 0, env->GetArrayLength(secretKey));
+        env->ReleaseByteArrayElements(secretKey, sk, 0);
+    }
+
+    return ret;
+}
+
+JNIEXPORT jint JNICALL
 Java_com_mldsa_MLDSA_nativeSign(JNIEnv *env, jclass clazz,
                                  jint level,
                                  jbyteArray message,
